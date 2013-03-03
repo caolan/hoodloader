@@ -1,39 +1,83 @@
 window.hoodie  = new Hoodie()
 
-$( function() {
-  var editor = ace.edit("editor");
-  // editor.setTheme("ace/theme/monokai");
-  editor.getSession().setMode("ace/mode/html");
+function showDashboard () {
+  var $dashboard = $('#dashboard')
+  $dashboard.show()
+  $('#sign-in').hide()
 
-  var $preview = $('#preview')
-  var code = localStorage.getItem('code')
+  var numNewUsers       = 0
+  var numConfirmedUsers = 0
+  var numTotalUsers     = 0
 
-  if (code) {
-    $preview.html( code )
-    editor.setValue( code )
-  } else {
-    code = $('#preview').html()
-    code = code.replace(/(^[^\n+]*\n|\n[^\n+]*$)/g, '');
-    code = code.replace(/[ ]{12}/g, '');
-    code = code.replace(/<ul id="todolist">.*<\/ul>/, '<ul id="todolist"></ul>');
-    localStorage.setItem('code', code)
-    editor.setValue( code )
-  }
-  
-  var updatePreview = function() {
-    var code = editor.getValue()
-    localStorage.setItem('code', code)
-    $preview.html( code )
-  };
+  var $newUsers       = $('#dashboard .users .new').text(numNewUsers)
+  var $confirmedUsers = $('#dashboard .users .confirmed').text(numConfirmedUsers)
+  var $totalUsers     = $('#dashboard .users .total').text(numTotalUsers)
 
-  hoodie.account.on('signout signin', updatePreview)
+  var usersMap = {}
 
-  $('.code-tab').on('shown', function() {
-    editor.focus()
+  hoodie.admin.users.connect()
+  hoodie.admin.users.on('add', function(object) {
+    usersMap[object.id] = object
+    if (object.$state === 'confirmed') {
+      $('#dashboard .users .confirmed').text(++numConfirmedUsers)
+    } else {
+      $('#dashboard .users .new').text(++numNewUsers)
+    }
+
+    $totalUsers = $('#dashboard .users .total').text(++numTotalUsers)
   })
-  $('.preview-tab').on('shown', function() {
-    updatePreview()
-  })
+  hoodie.admin.users.on('remove', function(object) {
+    delete usersMap[object.id]
+    if (object.$state === 'confirmed') {
+      $('#dashboard .users .confirmed').text(--numConfirmedUsers)
+    } else {
+      $('#dashboard .users .new').text(--numNewUsers)
+    }
 
-  $preview.addClass('active')
-})
+    $totalUsers = $('#dashboard .users .total').text(--numTotalUsers)
+  })
+  hoodie.admin.users.on('update', function(object) {
+    if (usersMap[object.id].$state !== 'confirmed' && object.$state === 'confirmed') {
+      $('#dashboard .users .new').text(--numNewUsers)
+      $('#dashboard .users .confirmed').text(++numConfirmedUsers)
+    }
+  })
+}
+function showSign () {
+  $('#sign-in').show()
+  $('#dashboard').hide()
+}
+function signIn(event) {
+  event.preventDefault();
+
+  var password = $(event.target).find('input[type=password]').val()
+
+  hoodie.admin.signIn( password )
+  .then( showDashboard )
+  .fail( showError )
+}
+
+function showError (error) {
+  var $signIn = $('#sign-in')
+  $signIn.find('.alert').remove()
+  $signIn.prepend( buildAlertHtml(error) )
+}
+function buildAlertHtml(error) {
+  return '<p class="alert alert-error"><strong>'+error.error+'</strong>: '+error.reason+'</p>'
+}
+
+function addTestUsers (event) {
+  event.preventDefault()
+  $el = $(event.target)
+  hoodie.admin.users.addTestUsers( parseInt($el.data('num') || 10) )
+}
+
+
+// init
+$( function() {  
+  hoodie.admin.authenticate()
+  .then( showDashboard, showSign );
+
+  $('#sign-in').on('submit', signIn)
+  $('body').on('click', '.users .add', addTestUsers )
+});
