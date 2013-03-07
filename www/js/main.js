@@ -1,4 +1,5 @@
 window.hoodie  = new Hoodie()
+var usersMap = {}
 
 function showDashboard () {
   var $dashboard = $('#dashboard')
@@ -13,7 +14,7 @@ function showDashboard () {
   var $confirmedUsers = $('#dashboard .users .confirmed').text(numConfirmedUsers)
   var $totalUsers     = $('#dashboard .users .total').text(numTotalUsers)
 
-  var usersMap = {}
+  
 
   hoodie.admin.users.connect()
   hoodie.admin.users.on('add', function(object) {
@@ -25,6 +26,7 @@ function showDashboard () {
     }
 
     $totalUsers = $('#dashboard .users .total').text(++numTotalUsers)
+    renderUserLists()
   })
   hoodie.admin.users.on('remove', function(object) {
     delete usersMap[object.id]
@@ -35,12 +37,16 @@ function showDashboard () {
     }
 
     $totalUsers = $('#dashboard .users .total').text(--numTotalUsers)
+    renderUserLists()
   })
   hoodie.admin.users.on('update', function(object) {
+    usersMap[object.id] = object
+
     if (usersMap[object.id].$state !== 'confirmed' && object.$state === 'confirmed') {
       $('#dashboard .users .new').text(--numNewUsers)
       $('#dashboard .users .confirmed').text(++numConfirmedUsers)
     }
+    renderUserLists()
   })
 }
 function showSign () {
@@ -70,6 +76,22 @@ function addTestUsers (event) {
   event.preventDefault()
   $el = $(event.target)
   hoodie.admin.users.addTestUsers( parseInt($el.data('num') || 10) )
+}
+
+function renderUserLists() {
+  var userId
+  var $newUsersTable = $('.pending-users.table')
+  var html = ''
+  var json
+
+  for (userId in usersMap) {
+    if (usersMap[userId].$state === 'confirmed') continue;
+    
+    json = JSON.stringify(usersMap[userId], '','  ')
+    html += '<tr><th>'+userId+'</th><td><pre>'+json+'</pre></td></tr>'
+  }
+
+  $newUsersTable.html(html)
 }
 
 

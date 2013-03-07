@@ -207,7 +207,9 @@ Hoodie.AdminUsers = (function(_super) {
     if (!email) {
       email = "" + testHoodieUser.account.ownerHash + "@example.com";
     }
-    return testHoodieUser.account.signUp(email, 'secret');
+    return testHoodieUser.account.signUp(email, 'secret').then(function() {
+      return testHoodieUser.account.signOut();
+    });
   };
 
   AdminUsers.prototype.addTestUsers = function(nr) {
