@@ -1,6 +1,6 @@
 {
   "name": "hoodloader",
-  "version": "1.0.0-8",
+  "version": "1.0.0-9",
   "type": "app",
   "dependencies": {
     "hoodie-app": "git://github.com/gr2m/hoodie-app.git",
