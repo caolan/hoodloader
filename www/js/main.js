@@ -40,12 +40,12 @@ function showDashboard () {
     renderUserLists()
   })
   hoodie.admin.users.on('update', function(object) {
-    usersMap[object.id] = object
-
     if (usersMap[object.id].$state !== 'confirmed' && object.$state === 'confirmed') {
       $('#dashboard .users .new').text(--numNewUsers)
       $('#dashboard .users .confirmed').text(++numConfirmedUsers)
     }
+    
+    usersMap[object.id] = object
     renderUserLists()
   })
 }
@@ -86,7 +86,7 @@ function renderUserLists() {
 
   for (userId in usersMap) {
     if (usersMap[userId].$state === 'confirmed') continue;
-    
+
     json = JSON.stringify(usersMap[userId], '','  ')
     html += '<tr><th>'+userId+'</th><td><pre>'+json+'</pre></td></tr>'
   }
