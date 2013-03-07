@@ -1,13 +1,17 @@
 {
   "name": "hoodloader",
-  "version": "1.0.0",
+  "version": "1.0.0-6",
   "type": "app",
   "dependencies": {
-    "hoodie-app": "git://github.com/hoodiehq/hoodie-app.git",
+    "hoodie-app": "git://github.com/gr2m/hoodie-app.git",
     "worker-users": "git://github.com/hoodiehq/worker-users.git",
     "worker-shares": "git://github.com/hoodiehq/worker-shares.git"
   },
   "scripts": {
     "start": "node node_modules/hoodie-app/lib/hoodie-app.js"
+  },
+  "subdomain": "hoodloader",
+  "engines": {
+    "node": "0.8.x"
   }
 }
