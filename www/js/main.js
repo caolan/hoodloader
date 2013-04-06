@@ -74,8 +74,18 @@ function buildAlertHtml(error) {
 
 function addTestUsers (event) {
   event.preventDefault()
-  $el = $(event.target)
+  var $el = $(event.target)
   hoodie.admin.users.addTestUsers( parseInt($el.data('num') || 10) )
+}
+function removeTestUsers (event) {
+  event.preventDefault()
+  var $el = $(event.target)
+  var num = parseInt($el.data('num'))
+  if (num) {
+    alert('tbd')
+  } else {
+    hoodie.admin.users.removeAll()
+  }
 }
 
 function renderUserLists() {
@@ -102,4 +112,5 @@ $( function() {
 
   $('#sign-in').on('submit', signIn)
   $('body').on('click', '.users .add', addTestUsers )
+  $('body').on('click', '.users .remove', removeTestUsers )
 });
