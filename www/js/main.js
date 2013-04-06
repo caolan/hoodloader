@@ -56,7 +56,6 @@ function showDashboard () {
 
   var shares = hoodie.admin.open('shares')
   shares.on('add', function(object) {
-    console.log('shares/add', object.type, object)
     if (object.type === '$share') {
       $numShares.text(++numShares)
     } else {
@@ -127,13 +126,14 @@ function addShares(event) {
 
   hoodie.admin.users.getTestUser()
   .then( function(userHoodie) {
-    hoodie.store.clear()
-    userHoodie.share.add()
-    .then( function(a, b, c, d) { 
-      debugger
-      return userHoodie.remote.push() 
-    } )
-    .always( userHoodie.account.signOut )
+    userHoodie.account.authenticate()
+    .then( function() {
+      userHoodie.share.add()
+      .then( function() { 
+        return userHoodie.remote.push() 
+      } )
+      .always( userHoodie.account.signOut )
+    })
   })
 };
 
