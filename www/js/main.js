@@ -10,9 +10,14 @@ function showDashboard () {
   var numConfirmedUsers = 0
   var numTotalUsers     = 0
 
-  var $newUsers       = $('#dashboard .users .new').text(numNewUsers)
-  var $confirmedUsers = $('#dashboard .users .confirmed').text(numConfirmedUsers)
-  var $totalUsers     = $('#dashboard .users .total').text(numTotalUsers)
+  var $newUsers         = $('#dashboard .users .new').text(numNewUsers)
+  var $confirmedUsers   = $('#dashboard .users .confirmed').text(numConfirmedUsers)
+  var $totalUsers       = $('#dashboard .users .total').text(numTotalUsers)
+
+  var numShares         = 0
+  var numSubscriptions  = 0
+  var $numShares        = $('#dashboard .shares .shares').text(numNewUsers)
+  var $numSubscriptions = $('#dashboard .shares .subscriptions').text(numConfirmedUsers)
 
   
 
@@ -20,34 +25,52 @@ function showDashboard () {
   hoodie.admin.users.on('add', function(object) {
     usersMap[object.id] = object
     if (object.$state === 'confirmed') {
-      $('#dashboard .users .confirmed').text(++numConfirmedUsers)
+      $confirmedUsers.text(++numConfirmedUsers)
     } else {
-      $('#dashboard .users .new').text(++numNewUsers)
+      $newUsers.text(++numNewUsers)
     }
 
-    $totalUsers = $('#dashboard .users .total').text(++numTotalUsers)
+    $totalUsers.text(++numTotalUsers)
     renderUserLists()
   })
   hoodie.admin.users.on('remove', function(object) {
     delete usersMap[object.id]
     if (object.$state === 'confirmed') {
-      $('#dashboard .users .confirmed').text(--numConfirmedUsers)
+      $confirmedUsers.text(--numConfirmedUsers)
     } else {
-      $('#dashboard .users .new').text(--numNewUsers)
+      $newUsers.text(--numNewUsers)
     }
 
-    $totalUsers = $('#dashboard .users .total').text(--numTotalUsers)
+    $totalUsers.text(--numTotalUsers)
     renderUserLists()
   })
   hoodie.admin.users.on('update', function(object) {
     if (usersMap[object.id].$state !== 'confirmed' && object.$state === 'confirmed') {
-      $('#dashboard .users .new').text(--numNewUsers)
-      $('#dashboard .users .confirmed').text(++numConfirmedUsers)
+      $newUsers.text(--numNewUsers)
+      $confirmedUsers.text(++numConfirmedUsers)
     }
     
     usersMap[object.id] = object
     renderUserLists()
   })
+
+  var shares = hoodie.admin.open('shares')
+  shares.on('add', function(object) {
+    console.log('shares/add', object.type, object)
+    if (object.type === '$share') {
+      $numShares.text(++numShares)
+    } else {
+      $numSubscriptions.text(++numSubscriptions)
+    }
+  })
+  shares.on('remove', function(object) {
+    if (object.type === '$share') {
+      $numShares.text(--numShares)
+    } else {
+      $numSubscriptions.text(--numSubscriptions)
+    }
+  })
+  shares.connect()
 }
 function showSign () {
   $('#sign-in').show()
@@ -72,20 +95,14 @@ function buildAlertHtml(error) {
   return '<p class="alert alert-error"><strong>'+error.error+'</strong>: '+error.reason+'</p>'
 }
 
-function addTestUsers (event) {
+function addUsers (event) {
   event.preventDefault()
   var $el = $(event.target)
   hoodie.admin.users.addTestUsers( parseInt($el.data('num') || 10) )
 }
-function removeTestUsers (event) {
+function removeUsers (event) {
   event.preventDefault()
-  var $el = $(event.target)
-  var num = parseInt($el.data('num'))
-  if (num) {
-    alert('tbd')
-  } else {
-    hoodie.admin.users.removeAll()
-  }
+  hoodie.admin.users.removeAll()
 }
 
 function renderUserLists() {
@@ -104,6 +121,21 @@ function renderUserLists() {
   $newUsersTable.html(html)
 }
 
+function addShares(event) {
+  event.preventDefault()
+  var options = $(event.target).data()
+
+  hoodie.admin.users.getTestUser()
+  .then( function(userHoodie) {
+    hoodie.store.clear()
+    userHoodie.share.add()
+    .then( function(a, b, c, d) { 
+      debugger
+      return userHoodie.remote.push() 
+    } )
+    .always( userHoodie.account.signOut )
+  })
+};
 
 // init
 $( function() {  
@@ -111,6 +143,7 @@ $( function() {
   .then( showDashboard, showSign );
 
   $('#sign-in').on('submit', signIn)
-  $('body').on('click', '.users .add', addTestUsers )
-  $('body').on('click', '.users .remove', removeTestUsers )
+  $('body').on('click', '.users .add', addUsers )
+  $('body').on('click', '.users .remove', removeUsers )
+  $('body').on('click', '.shares .add', addShares )
 });

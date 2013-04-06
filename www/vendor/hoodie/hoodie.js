@@ -103,14 +103,17 @@ Hoodie = (function(_super) {
     this.checkConnection();
   }
 
-  Hoodie.prototype.request = function(type, path, options) {
+  Hoodie.prototype.request = function(type, url, options) {
     var defaults;
     if (options == null) {
       options = {};
     }
+    if (!/^http/.test(url)) {
+      url = "" + this.baseUrl + url;
+    }
     defaults = {
       type: type,
-      url: "" + this.baseUrl + path,
+      url: url,
       xhrFields: {
         withCredentials: true
       },
@@ -130,12 +133,12 @@ Hoodie = (function(_super) {
     return this._checkConnectionRequest = this.request('GET', '/').pipe(this._handleCheckConnectionSuccess, this._handleCheckConnectionError);
   };
 
-  Hoodie.prototype.open = function(store_name, options) {
+  Hoodie.prototype.open = function(storeName, options) {
     if (options == null) {
       options = {};
     }
     $.extend(options, {
-      name: store_name
+      name: storeName
     });
     return new Hoodie.Remote(this, options);
   };
@@ -238,6 +241,7 @@ Hoodie.Account = (function() {
     this._handleRequestError = __bind(this._handleRequestError, this);
     this._handleAuthenticateRequestSuccess = __bind(this._handleAuthenticateRequestSuccess, this);
     this.fetch = __bind(this.fetch, this);
+    this.signOut = __bind(this.signOut, this);
     this.authenticate = __bind(this.authenticate, this);
     this._doc = {};
     this._requests = {};
@@ -1155,6 +1159,9 @@ Hoodie.Remote = (function(_super) {
     if (options.connected != null) {
       this.connected = options.connected;
     }
+    if (options.baseUrl != null) {
+      this.baseUrl = options.baseUrl;
+    }
     this._knownObjects = {};
     if (this.isConnected()) {
       this.connect();
@@ -1167,6 +1174,9 @@ Hoodie.Remote = (function(_super) {
     }
     if (this.name) {
       path = "/" + (encodeURIComponent(this.name)) + path;
+    }
+    if (this.baseUrl) {
+      path = "" + this.baseUrl + path;
     }
     options.contentType || (options.contentType = 'application/json');
     if (type === 'POST' || type === 'PUT') {
@@ -1309,8 +1319,8 @@ Hoodie.Remote = (function(_super) {
     objectsForRemote = [];
     for (_i = 0, _len = objects.length; _i < _len; _i++) {
       object = objects[_i];
-      object = this._parseForRemote(object);
       this._addRevisionTo(object);
+      object = this._parseForRemote(object);
       objectsForRemote.push(object);
     }
     return this._pushRequest = this.request('POST', "/_bulk_docs", {
@@ -1364,13 +1374,13 @@ Hoodie.Remote = (function(_super) {
   };
 
   Remote.prototype._parseFromRemote = function(object) {
-    var id, _ref;
+    var id, ignore, _ref;
     id = object._id || object.id;
     delete object._id;
     if (this.prefix) {
       id = id.replace(RegExp('^' + this.prefix), '');
     }
-    _ref = id.split(/\//), object.type = _ref[0], object.id = _ref[1];
+    _ref = id.match(/([^\/]+)\/(.*)/), ignore = _ref[0], object.type = _ref[1], object.id = _ref[2];
     if (object.createdAt) {
       object.createdAt = new Date(Date.parse(object.createdAt));
     }
@@ -1401,6 +1411,9 @@ Hoodie.Remote = (function(_super) {
     } catch (_error) {}
     currentRevNr = parseInt(currentRevNr, 10) || 0;
     newRevisionId = this._generateNewRevisionId();
+    if (attributes._$local) {
+      newRevisionId += "-local";
+    }
     attributes._rev = "" + (currentRevNr + 1) + "-" + newRevisionId;
     attributes._revisions = {
       start: 1,
@@ -1712,6 +1725,11 @@ Hoodie.LocalStore = (function(_super) {
     } else if (!options.silent) {
       object.updatedAt = this._now();
       object.createdAt || (object.createdAt = object.updatedAt);
+    }
+    if (options.local) {
+      object._$local = true;
+    } else {
+      delete object._$local;
     }
     try {
       object = this.cache(type, id, object, options);
@@ -2282,15 +2300,13 @@ Hoodie.Share = (function() {
     return new this.instance(this.hoodie, options);
   };
 
-  Share.prototype._storeShareAt = function(shareId, properties) {
+  Share.prototype._storeShareAt = function(shareId) {
     var _this = this;
     return this.pipe(function(objects) {
       var object, updateObject, _i, _len, _results;
       updateObject = function(object) {
-        object.$shares || (object.$shares = {});
-        object.$shares[shareId] = properties || true;
         _this.hoodie.store.update(object.type, object.id, {
-          $shares: object.$shares
+          $sharedAt: shareId
         });
         return object;
       };
@@ -2312,12 +2328,11 @@ Hoodie.Share = (function() {
     return this.pipe(function(objects) {
       var object, updateObject, _i, _len, _results;
       updateObject = function(object) {
-        if (!(object.$shares && object.$shares[shareId])) {
+        if (object.$sharedAt !== shareId) {
           return object;
         }
-        object.$shares[shareId] = false;
         _this.hoodie.store.update(object.type, object.id, {
-          $shares: object.$shares
+          $unshared: true
         });
         return object;
       };
@@ -2339,15 +2354,11 @@ Hoodie.Share = (function() {
     return this.pipe(function(objects) {
       var object, updateObject, _i, _len, _results;
       updateObject = function(object) {
-        var shareId;
-        if (!object.$shares) {
+        if (!object.$sharedAt) {
           return object;
         }
-        for (shareId in object.$shares) {
-          object.$shares[shareId] = false;
-        }
         _this.hoodie.store.update(object.type, object.id, {
-          $shares: object.$shares
+          $unshared: true
         });
         return object;
       };
@@ -2370,10 +2381,8 @@ Hoodie.Share = (function() {
       return _this.hoodie.share.add().pipe(function(newShare) {
         var object, updateObject, value;
         updateObject = function(object) {
-          object.$shares || (object.$shares = {});
-          object.$shares[newShare.id] = properties || true;
           _this.hoodie.store.update(object.type, object.id, {
-            $shares: object.$shares
+            $sharedAt: newShare.id
           });
           return object;
         };
@@ -2491,6 +2500,7 @@ Hoodie.ShareInstance = (function(_super) {
       options = {};
     }
     this._handleSecurityResponse = __bind(this._handleSecurityResponse, this);
+    this._objectBelongsToMe = __bind(this._objectBelongsToMe, this);
     this.id = options.id || this.hoodie.uuid();
     this.name = "share/" + this.id;
     this.prefix = this.name;
@@ -2504,6 +2514,9 @@ Hoodie.ShareInstance = (function(_super) {
 
   ShareInstance.prototype.unsubscribe = function() {
     this.hoodie.share.remove(this.id);
+    this.hoodie.store.removeAll(this._objectBelongsToMe, {
+      local: true
+    });
     return this;
   };
 
@@ -2640,6 +2653,10 @@ Hoodie.ShareInstance = (function(_super) {
     return this.hoodie.share.update(this.id, {
       access: this.access
     });
+  };
+
+  ShareInstance.prototype._objectBelongsToMe = function(object) {
+    return object.$sharedAt === this.id;
   };
 
   ShareInstance.prototype._handleSecurityResponse = function(security) {
