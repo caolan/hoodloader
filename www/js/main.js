@@ -126,14 +126,14 @@ function addShares(event) {
 
   hoodie.admin.users.getTestUser()
   .then( function(userHoodie) {
-    userHoodie.account.authenticate()
-    .then( function() {
+    window.setTimeout( function() {
       userHoodie.share.add()
       .then( function() { 
+        console.log('push!')
         return userHoodie.remote.push() 
       } )
       .always( userHoodie.account.signOut )
-    })
+    }, 2000)
   })
 };
 

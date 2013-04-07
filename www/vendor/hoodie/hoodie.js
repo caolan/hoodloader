@@ -263,12 +263,14 @@ Hoodie.Account = (function() {
     if (this._authenticated === true) {
       return this.hoodie.defer().resolve(this.username).promise();
     }
-    if (((_ref = this._requests.signOut) != null ? _ref.state() : void 0) === 'pending' || ((_ref1 = this._requests.signIn) != null ? _ref1.state() : void 0) === 'pending') {
+    if (((_ref = this._requests.signIn) != null ? _ref.state() : void 0) === 'pending') {
+      return this.hoodie.rejectWith();
+    }
+    if (((_ref1 = this._requests.signOut) != null ? _ref1.state() : void 0) === 'pending') {
       return this.hoodie.rejectWith();
     }
     if (this.username === void 0) {
       return this._sendSignOutRequest().then(function() {
-        _this._authenticated = false;
         return _this.hoodie.rejectWith();
       });
     }
