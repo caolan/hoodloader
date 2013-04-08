@@ -259,19 +259,27 @@ Hoodie.AdminUsers = (function(_super) {
   };
 
   AdminUsers.prototype.addTestUsers = function(nr) {
-    var i, promises, timestamp;
+    var i, promises, timestamp,
+      _this = this;
     if (nr == null) {
       nr = 1;
     }
     timestamp = (new Date).getTime();
-    promises = (function() {
-      var _i, _results;
-      _results = [];
-      for (i = _i = 1; 1 <= nr ? _i <= nr : _i >= nr; i = 1 <= nr ? ++_i : --_i) {
-        _results.push(this.addTestUser());
-      }
-      return _results;
-    }).call(this);
+    if (nr > 10) {
+      this.addTestUsers(10).then(function() {
+        nr -= 10;
+        return _this.addTestUsers(nr);
+      });
+    } else {
+      promises = (function() {
+        var _i, _results;
+        _results = [];
+        for (i = _i = 1; 1 <= nr ? _i <= nr : _i >= nr; i = 1 <= nr ? ++_i : --_i) {
+          _results.push(this.addTestUser());
+        }
+        return _results;
+      }).call(this);
+    }
     return $.when.apply($, promises);
   };
 
