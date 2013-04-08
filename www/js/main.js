@@ -124,18 +124,23 @@ function addShares(event) {
   event.preventDefault()
   var options = $(event.target).data()
 
-  hoodie.admin.users.getTestUser()
-  .then( function(userHoodie) {
-    window.setTimeout( function() {
-      userHoodie.share.add()
-      .then( function() { 
-        console.log('push!')
-        return userHoodie.remote.push() 
-      } )
-      .always( userHoodie.account.signOut )
-    }, 2000)
+  hoodie.admin.request('GET', '/_all_dbs')
+  .then( function(dbNames) {
+    dbNames = dbNames.filter(function(dbName) { return /^user\/\w+/.test(dbName) })
+    var dbName = dbNames[Math.floor(Math.random()*dbNames.length)];
+    var shareObject = generateShareObjectFor(dbName)
+    hoodie.admin.open(dbName).add('$share', shareObject)
   })
 };
+
+function generateShareObjectFor(dbName) {
+  return {
+    "createdBy": dbName.split(/\//).pop(),
+    "updatedAt": new Date,
+    "createdAt": new Date,
+    "type": "$share"
+  }
+}
 
 // init
 $( function() {  
