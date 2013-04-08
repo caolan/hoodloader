@@ -122,23 +122,44 @@ function renderUserLists() {
 
 function addShares(event) {
   event.preventDefault()
-  var options = $(event.target).data()
+  var addOptions = $(event.target).data()
 
   hoodie.admin.request('GET', '/_all_dbs')
   .then( function(dbNames) {
     dbNames = dbNames.filter(function(dbName) { return /^user\/\w+/.test(dbName) })
     var dbName = dbNames[Math.floor(Math.random()*dbNames.length)];
     var shareObject = generateShareObjectFor(dbName)
-    hoodie.admin.open(dbName).add('$share', shareObject)
+    var db = hoodie.admin.open(dbName)
+    var docs = [shareObject]
+
+    if( addOptions.numObjects ) {
+      addOptions.numObjects = parseInt(addOptions.numObjects)
+      while( addOptions.numObjects-- ) {
+        docs.push( generateTestObjectFor(shareObject) )
+      }
+    }
+
+    window.p = db.push(docs);
   })
 };
 
 function generateShareObjectFor(dbName) {
   return {
-    "createdBy": dbName.split(/\//).pop(),
-    "updatedAt": new Date,
-    "createdAt": new Date,
-    "type": "$share"
+    "createdBy" : dbName.split(/\//).pop(),
+    "updatedAt" : new Date,
+    "createdAt" : new Date,
+    "type" : "$share",
+    "id" : hoodie.uuid()
+  }
+}
+function generateTestObjectFor(shareObject) {
+  return {
+    "createdBy" : shareObject.createdBy,
+    "updatedAt" : new Date,
+    "createdAt" : new Date,
+    "type" : "test",
+    "id" : hoodie.uuid(),
+    "$sharedAt" : shareObject.id
   }
 }
 
