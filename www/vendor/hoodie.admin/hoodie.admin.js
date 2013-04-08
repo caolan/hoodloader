@@ -249,23 +249,13 @@ Hoodie.AdminUsers = (function(_super) {
   }
 
   AdminUsers.prototype.addTestUser = function(options) {
-    var baseUrl, email, hash, testHoodieUser;
+    var email, hash;
     if (options == null) {
       options = {};
     }
-    baseUrl = hoodie.baseUrl;
     hash = "test" + (hoodie.uuid(5));
-    this.hoodie.store.clear();
-    testHoodieUser = new Hoodie(baseUrl.replace(/\bapi\./, "" + hash + ".api."));
-    testHoodieUser.account.ownerHash = hash;
-    email = "" + testHoodieUser.account.ownerHash + "@example.com";
-    return testHoodieUser.account.signUp(email).then(function() {
-      if (!options.keepSignedIn) {
-        return testHoodieUser.account.signOut();
-      }
-    }).then(function() {
-      return testHoodieUser;
-    });
+    email = "" + hash + "@example.com";
+    return this._signUpUser(hash, email);
   };
 
   AdminUsers.prototype.addTestUsers = function(nr) {
@@ -347,6 +337,38 @@ Hoodie.AdminUsers = (function(_super) {
     return rows.map(function(row) {
       return row.doc;
     });
+  };
+
+  AdminUsers.prototype._signUpUser = function(ownerHash, username, password) {
+    var db, id, key, now, options, url;
+    if (password == null) {
+      password = '';
+    }
+    if (!username) {
+      return this.hoodie.defer().reject({
+        error: 'username must be set'
+      }).promise();
+    }
+    key = "user/" + username;
+    db = "user/" + ownerHash;
+    now = new Date;
+    id = "org.couchdb.user:" + key;
+    url = "/" + (encodeURIComponent(id));
+    options = {
+      data: {
+        _id: id,
+        name: key,
+        type: 'user',
+        roles: [],
+        password: password,
+        ownerHash: ownerHash,
+        database: db,
+        updatedAt: now,
+        createdAt: now,
+        signedUpAt: now
+      }
+    };
+    return this.request('PUT', url, options);
   };
 
   return AdminUsers;
