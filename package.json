@@ -3,7 +3,7 @@
   "version": "1.0.0-13",
   "type": "app",
   "dependencies": {
-    "hoodie-app": "git://github.com/hoodiehq/hoodie-app.git",
+    "hoodie-app": "git://github.com/caolan/hoodie-app.git",
     "worker-users": "git://github.com/hoodiehq/worker-users.git",
     "worker-shares": "git://github.com/hoodiehq/worker-shares.git"
   },
