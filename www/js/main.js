@@ -1,4 +1,4 @@
-window.hoodie  = new Hoodie('http://127.0.0.1:6003')
+window.hoodie  = new Hoodie('/_api')
 var usersMap = {}
 
 function showDashboard () {
