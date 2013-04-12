@@ -98,7 +98,7 @@ Hoodie.AdminApp = (function() {
     var defer, info;
     defer = this.hoodie.defer();
     info = {
-      name: "minutes.io"
+      name: "appName (not implemented yet)"
     };
     window.setTimeout(function() {
       return defer.resolve(info);
@@ -429,9 +429,11 @@ Hoodie.Admin = (function() {
       options = {};
     }
     $.extend(options, {
-      name: storeName,
-      baseUrl: this.baseUrl
+      name: storeName
     });
+    if (this.baseUrl !== this.hoodie.baseUrl) {
+      options.baseUrl = this.baseUrl;
+    }
     return new Hoodie.Remote(this.hoodie, options);
   };
 
