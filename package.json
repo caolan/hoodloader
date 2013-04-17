@@ -1,11 +1,11 @@
 {
   "name": "hoodloader3",
-  "version": "1.0.0-24",
+  "version": "1.0.0-28",
   "type": "app",
   "dependencies": {
     "hoodie-app": "git://github.com/caolan/hoodie-app.git",
-    "worker-users": "git://github.com/hoodiehq/worker-users.git",
-    "worker-shares": "git://github.com/hoodiehq/worker-shares.git"
+    "worker-users": "git://github.com/caolan/worker-users.git",
+    "worker-shares": "git://github.com/caolan/worker-shares.git"
   },
   "scripts": {
     "start": "node node_modules/hoodie-app/bin/start"
